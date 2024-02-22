@@ -1,4 +1,4 @@
-#include "micro_paint.h"
+#include "mini_paint.h"
 
 int ft_strlen(char *msg)
 {
@@ -23,19 +23,18 @@ int check_zone(t_zone *zone)
 	return (zone->width > 0 && zone->width <= 300 && zone->height > 0 && zone->height <= 300);
 }
 
-int check_shape(t_shape *shape)
+int in_circle(float x, float y, t_shape *shape)
 {
-	return (shape->width > 0 && shape->height > 0);
-}
+	float dist;
 
-int in_shape(float x, float y, t_shape *shape)
-{
-	if (x < shape->x || shape->x + shape->width < x || y < shape->y || shape->y + shape->height < y)
-		return (0);
-	if (x - shape->x < 1 || (shape->x + shape->width) + x < 1 
-		|| y - shape->y < 1 || (shape->y + shape->height) + y < 1)
-		return (2);
-	return (1);
+	dist = sqrtf(powf(x - shape->x, 2.0) + powf(y - shape->y, 2.0));
+	if (dist <= shape->radius)
+	{
+		if (shape->type == 'C')
+			return (1);
+		return (shape->radius - dist <= 1.0);
+	}
+	return (0);
 }
 
 void drawing(FILE *file, t_zone *zone, char *d)
@@ -43,9 +42,9 @@ void drawing(FILE *file, t_zone *zone, char *d)
 	t_shape shape;
 	int x, y, ret;
 
-	while ((ret = fscanf(file, "%c %f %f %f %f %c\n", &shape.type, &shape.x, &shape.y, &shape.width, &shape.height, &shape.color)) == 6)
+	while ((ret = fscanf(file, "%c %f %f %f %c\n", &shape.type, &shape.x, &shape.y, &shape.radius, &shape.color)) == 5)
 	{
-		if ((shape.type != 'r' && shape.type != 'R') || !check_shape(&shape))
+		if ((shape.type != 'c' && shape.type != 'C') || shape.radius <= 0.0)
 			break ;
 		y = 0;
 		while (y < zone->height)
@@ -53,8 +52,7 @@ void drawing(FILE *file, t_zone *zone, char *d)
 			x = 0;
 			while (x < zone->width)
 			{
-				ret = in_shape((float)x, (float)y, &shape);
-				if ((shape.type == 'r' && ret == 2) || (shape.type == 'R' && ret))
+				if (in_circle((float)x, (float)y, &shape))
 					d[(y * zone->width) + x] = shape.color;
 				x++;
 			}
@@ -97,4 +95,5 @@ int main(int argc, char **argv)
 	}
 	free_all(file, draw, NULL);
 	return (0);
+
 }
